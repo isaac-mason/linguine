@@ -1,0 +1,19 @@
+{
+    "name": "fludd",
+    "type": "module",
+    "packageManager": "yarn@3.2.1",
+    "author": "Isaac Mason <isaac@isaacmason.com>",
+    "license": "MIT",
+    "version": "0.0.0",
+    "bugs": {
+    },
+    "scripts": {
+    },
+    "devDependencies": {
+    },
+    "files": [
+      "dist"
+    ],
+    "module": "./dist/index.js"
+  }
+  
