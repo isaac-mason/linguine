@@ -14,4 +14,4 @@ batch based on #?
 some form of takeLatest, takeEarliest?
 partition
 
-
+topic

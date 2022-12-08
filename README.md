@@ -1,33 +1,47 @@
-# fludd
+# linguine 🍝
 
-`fludd` is a library for composing simple event-driven logic with topics and streams.
+De-spaghettifies your event logic! Declaratively compose event logic with Topics and Streams.
 
 ## Installation
 
 ```sh
-$ npm install fludd
+$ npm install linguine # or yarn install
 ```
 
-### Example
+## Example
 
 ```ts
-import { Topic } from 'fludd'
-
-type Player = {
-    id: string
+type PlayerInput = {
+    up: boolean
+    down: boolean
+    left: boolean
+    right: boolean
 }
 
-type PlayerUpdate = {
-    player: Player
-    state: 'dead' | 'alive'
+type PlayerMovement = {
+    x: number
+    y: number
 }
 
-const playerUpdateTopic = new Topic<PlayerUpdate>()
-const deadPlayersTopic  = new Topic<Player>()
+const playerInputTopic = new Topic<PlayerInput>()
+const playerMovementTopic = new Topic<PlayerMovement>()
 
-playerUpdateTopic
+playerInputTopic
     .stream()
-    .filter((x) => x.state === 'dead')
-    .map((x) => x.player)
-    .to(deadPlayersTopic)
+    .map(({ up, down, left, right }) => ({
+        x: (left ? -1 : 0) + (right ? 1 : 0),
+        y: (up ? -1 : 0) + (down ? 1 : 0)
+    }))
+    .to(playerMovementTopic)
+
+playerMovementTopic
+    .stream()
+    .forEach((movement) => console.log(movement))
+
+// later...
+
+playerInputTopic.write({ up: true, down: false, left: false, right: false })
+
+// stdout:
+// { x: -1, y: 0 }
 ```

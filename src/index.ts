@@ -99,7 +99,7 @@ export class WriteToTopicNode<T> extends Node {
   }
 
   execute(input: T): void {
-    this.topic.push(input);
+    this.topic.write(input);
   }
 }
 
@@ -187,6 +187,17 @@ export class ThrottleByTimeNode<T> extends Node {
         this.emit(input);
         this.timeout = null;
       }, this.ms);
+    }
+  }
+}
+
+export class SkipDuplicatesNode<T> extends Node {
+  private lastValue: T | null = null;
+
+  execute(input: T): void {
+    if (this.lastValue !== input) {
+      this.emit(input);
+      this.lastValue = input;
     }
   }
 }
@@ -288,7 +299,7 @@ export class StreamBuilder<T> {
    * // Will only print the last value after 1000ms have passed without a new value
    * const topic = new Topic<number>()
    * topic.stream().debounce(1000).forEach((value) => console.log(value))
-   * topic.push(1)
+   * topic.write(1)
    * ```
    */
   debounce(ms: number) {
@@ -310,7 +321,7 @@ export class StreamBuilder<T> {
    * // Will print 1 after 1000ms
    * const topic = new Topic<number>()
    * topic.stream().delay(1000).forEach((value) => console.log(value))
-   * topic.push(1)
+   * topic.write(1)
    * ```
    */
   delay(ms: number) {
@@ -334,9 +345,9 @@ export class StreamBuilder<T> {
    * topic.stream()
    *   .bufferByCount(3)
    *   .forEach((value) => console.log(value));
-   * topic.push(1);
-   * topic.push(2);
-   * topic.push(3);
+   * topic.write(1);
+   * topic.write(2);
+   * topic.write(3);
    * ```
    */
   bufferByCount(count: number) {
@@ -360,9 +371,9 @@ export class StreamBuilder<T> {
    * topic.stream()
    *   .bufferByTime(1000)
    *   .forEach((value) => console.log(value));
-   * topic.push(1);
-   * topic.push(2);
-   * topic.push(3);
+   * topic.write(1);
+   * topic.write(2);
+   * topic.write(3);
    * ```
    */
   bufferByTime(ms: number) {
@@ -386,16 +397,41 @@ export class StreamBuilder<T> {
    * topic.stream()
    *  .throttleByTime(1000)
    * .forEach((value) => console.log(value));
-   * topic.push(1);
-   * topic.push(2);
+   * topic.write(1);
+   * topic.write(2);
    * 
    * setTimeout(() => {
-   *  topic.push(3);
+   *  topic.write(3);
    * }, 2000);
    * ```
    */
   throttleByTime(ms: number) {
-    const node = new ThrottleByTimeNode(ms);
+    const node = new ThrottleByTimeNode<T>(ms);
+
+    node.parent = this.current;
+    this.current.children.push(node);
+
+    return new StreamBuilder<T>(node);
+  }
+
+  /**
+   * Ignores messages if they are equal to the previous message.
+   * @returns
+   * 
+   * @example
+   * ```ts
+   * // Will log "12"
+   * const topic = new Topic<number>();
+   * topic.stream()
+   *   .skipDuplicates()
+   *   .forEach((value) => console.log(value));
+   * topic.write(1);
+   * topic.write(1);
+   * topic.write(2);
+   * ```
+   */
+  skipDuplicates() {
+    const node = new SkipDuplicatesNode<T>();
 
     node.parent = this.current;
     this.current.children.push(node);
@@ -412,7 +448,7 @@ export class StreamBuilder<T> {
    * const topic = new Topic<number>();
    * const otherTopic = new Topic<number>();
    * topic.stream().map((value) => value * 2).to(otherTopic);
-   * topic.push(1);
+   * topic.write(1);
    * ```
    */
   to(topic: Topic<T>): void {
@@ -471,10 +507,10 @@ export class Topic<T> {
   children: Node[] = [];
 
   /**
-   * Push data to the topic
+   * Write data to the topic
    * @param data
    */
-  push(data: T): void {
+  write(data: T): void {
     this.children.forEach((node) => {
       node.execute(data);
     });
@@ -519,9 +555,9 @@ toStringTopic.stream().forEach((data) => {
   console.log("toStringTopic - " + data);
 });
 
-inputNumberTopic.push(1);
-inputNumberTopic.push(2);
-inputNumberTopic.push(3);
+inputNumberTopic.write(1);
+inputNumberTopic.write(2);
+inputNumberTopic.write(3);
 
 /// ---
 
@@ -529,13 +565,16 @@ const input = new Topic<number>();
 
 input
   .stream()
-  .catchError((error) => console.log(`caught error - ${error}`))
+  .catchError((error) => console.log('should not catch here'))
   .map((value) => {
     return value
   })
   .catchError((error) => console.log(`caught error here instead - ${error}`))
-  .map((value) => {
+  .map(() => {
     throw new Error("testing error")
   })
 
-  input.push(1)
+  input.write(1)
+
+
+/// ---
