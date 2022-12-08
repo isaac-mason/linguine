@@ -1,84 +1,130 @@
-export class Node {
-  public children: Node[] = [];
-  public operation?: Operation;
+export type NodeProps = {
+  deferred?: boolean;
+};
 
-  constructor() {}
+export abstract class Node {
+  parent?: Node | Topic<unknown>;
+  children: Node[] = [];
 
-  handle(input: any): any {
-    // default output is the input
-    let output = input;
+  constructor(public props?: NodeProps) {}
 
-    // if there is an operation, execute it
-    if (this.operation) {
-      output = this.operation.handle(input);
+  abstract execute(input: unknown): unknown;
 
-      // if the operation returns undefined, stop the chain
-      if (output === undefined) {
-        return;
-      }
-    }
-
-    // if there are children nodes, execute them
-    if (this.children.length !== 0) {
+  protected emit(output: unknown) {
+    const emit = () => {
       this.children.forEach((child) => {
-        child.handle(output);
+        child.execute(output);
       });
+    };
+
+    if (this.props?.deferred) {
+      setTimeout(() => emit());
+    } else {
+      emit();
     }
   }
 }
 
-export abstract class Operation {
-  abstract handle(input: unknown): unknown | undefined;
+export class NoopNode<T> extends Node {
+  execute(input: T): void {
+    this.emit(input);
+  }
 }
 
-export class DoOperation<T> {
-  constructor(private fn: (data: T) => void) {}
+export class ForEachNode<T> extends Node {
+  constructor(private fn: (data: T) => void, props?: NodeProps) {
+    super(props);
+  }
 
-  handle(input: T): T {
+  execute(input: T): void {
     this.fn(input);
-    return input;
   }
 }
 
-export class MapOperation<T, Out> {
-  constructor(private fn: (data: T) => Out) {}
+export class MapNode<T, Out> extends Node {
+  constructor(private fn: (data: T) => Out, props?: NodeProps) {
+    super(props);
+  }
 
-  handle(input: T): Out {
-    return this.fn(input);
+  execute(input: T): void {
+    this.emit(this.fn(input));
   }
 }
 
-export class FilterOperation<T> {
-  constructor(private fn: (data: T) => boolean) {}
+export class FlatMapNode<T, Out> extends Node {
+  constructor(private fn: (data: T) => Out[], props?: NodeProps) {
+    super(props);
+  }
 
-  handle(input: T): T | undefined {
-    if (this.fn(input)) {
-      return input;
+  execute(input: T): void {
+    const outputs = this.fn(input);
+
+    for (const output of outputs) {
+      this.emit(output);
     }
-    return undefined;
   }
 }
 
-export class WriteToTopicOperation<T> {
-  constructor(private topic: Topic<T>) {}
+export class FilterNode<T> extends Node {
+  constructor(private fn: (data: T) => boolean, props?: NodeProps) {
+    super(props);
+  }
 
-  handle(input: T): T | undefined {
+  execute(input: T): void {
+    if (this.fn(input)) {
+      this.emit(input);
+    }
+  }
+}
+
+export class WriteToTopicNode<T> extends Node {
+  constructor(private topic: Topic<T>, props?: NodeProps) {
+    super(props);
+  }
+
+  execute(input: T): void {
     this.topic.push(input);
-    return undefined;
+  }
+}
+
+export class DebounceNode<T> extends Node {
+  private lastValue: T | null = null
+
+  private timeout: number | null = null
+
+  constructor(public ms: number, props?: NodeProps) {
+    super(props);
+  }
+
+  execute(input: T): void {
+    this.lastValue = input
+
+    if (this.timeout) {
+      clearTimeout(this.timeout)
+    }
+
+    this.timeout = setTimeout(() => {
+      this.emit(this.lastValue)
+      this.lastValue = null;
+    }, this.ms)
   }
 }
 
 export class StreamBuilder<T> {
-  constructor(private parent: Node | Topic<T>) {}
+  T: T;
+
+  constructor(private current: Node | Topic<T>) {}
 
   /**
-   * Calls the provided function and returns the input
+   * Calls the provided function with the input
    * @param fn
    * @returns
    */
-  do(fn: (data: T) => void) {
-    const node = this.createNode(new DoOperation<T>(fn));
-    return new StreamBuilder<T>(node);
+  forEach(fn: (value: T) => void) {
+    const node = new ForEachNode(fn);
+
+    node.parent = this.current;
+    this.current.children.push(node);
   }
 
   /**
@@ -86,8 +132,26 @@ export class StreamBuilder<T> {
    * @param fn
    * @returns
    */
-  map<Out>(fn: (data: T) => Out) {
-    const node = this.createNode(new MapOperation<T, Out>(fn));
+  map<Out>(fn: (value: T) => Out) {
+    const node = new MapNode(fn);
+
+    node.parent = this.current;
+    this.current.children.push(node);
+
+    return new StreamBuilder<Out>(node);
+  }
+
+  /**
+   * Returns the output
+   * @param fn
+   * @returns
+   */
+  flatMap<Out>(fn: (value: T) => Out[]) {
+    const node = new FlatMapNode(fn);
+
+    node.parent = this.current;
+    this.current.children.push(node);
+
     return new StreamBuilder<Out>(node);
   }
 
@@ -96,29 +160,69 @@ export class StreamBuilder<T> {
    * @param fn
    * @returns
    */
-  filter(fn: (data: T) => boolean) {
-    const node = this.createNode(new FilterOperation<T>(fn));
-    return new StreamBuilder<T>(node);
+  filter<S extends T>(fn: (value: T) => value is S): StreamBuilder<S>;
+  filter(fn: (value: T) => boolean): StreamBuilder<T>;
+  filter(fn: (value: any) => any) {
+    const node = new FilterNode(fn);
+
+    node.parent = this.current;
+    this.current.children.push(node);
+
+    return new StreamBuilder(node);
+  }
+
+  /**
+   * Debounces the stream by the given amount of milliseconds
+   * @param ms 
+   * @returns
+   * 
+   * @example
+   * ```ts
+   * // Will only print the last value after 1000ms have passed without a new value
+   * const topic = new Topic() 
+   * topic.stream().debounce(1000).forEach((value) => console.log(value))
+   * topic.push(1)
+   * ```
+   */
+  debounce(ms: number) {
+    const node = new DebounceNode(ms);
+
+    node.parent = this.current;
+    this.current.children.push(node);
+
+    return new StreamBuilder(node);
   }
 
   /**
    * Writes to the provided topic
    * @param topic
    */
-  to(topic: Topic<T>): void {
-    const node = this.createNode(new WriteToTopicOperation<T>(topic));
+   to(topic: Topic<T>): void {
+    const node = new WriteToTopicNode(topic);
+
+    node.parent = this.current;
+    this.current.children.push(node);
   }
 
-  private createNode(operation: Operation): Node {
-    const node = new Node();
-    node.operation = operation;
-    this.parent.children.push(node);
-    return node;
+  /**
+   * Joins the given streams
+   * @param streams
+   * @returns
+   */
+  join<S extends StreamBuilder<unknown>[]>(...streams: [...S]) {
+    const joinNode = new NoopNode();
+
+    this.current.children.push(joinNode);
+    streams.forEach((stream) => {
+      stream.current.children.push(joinNode);
+    });
+
+    return new StreamBuilder<[...S][number]["T"] | this["T"]>(joinNode);
   }
 }
 
 export class Topic<T> {
-  children: Operation[] = [];
+  children: Node[] = [];
 
   /**
    * Push data to the topic
@@ -126,7 +230,7 @@ export class Topic<T> {
    */
   push(data: T): void {
     this.children.forEach((node) => {
-      node.handle(data);
+      node.execute(data);
     });
   }
 
@@ -134,7 +238,7 @@ export class Topic<T> {
    * Create a new stream builder for this topic
    */
   stream(): StreamBuilder<T> {
-    const rootNode = new Node();
+    const rootNode = new NoopNode();
     this.children.push(rootNode);
 
     return new StreamBuilder<T>(rootNode);
@@ -142,21 +246,29 @@ export class Topic<T> {
 }
 
 const inputNumberTopic = new Topic<number>();
+
 const doubledNumberTopic = new Topic<number>();
-const filteredDoubledNumberTopic = new Topic<number>();
+const filteredAndDoubledNumberTopic = new Topic<number>();
+const toStringTopic = new Topic<string>();
 
-const doubled = inputNumberTopic.stream().map((data) => data * 2);
-
-const filtered = doubled.filter((data) => data > 5);
-
-filtered.to(filteredDoubledNumberTopic);
+const doubled = inputNumberTopic.stream().map((value) => value * 2);
 doubled.to(doubledNumberTopic);
 
-doubledNumberTopic.stream().do((data) => {
+const filteredAndDoubled = doubled.filter((value) => 5 < value);
+filteredAndDoubled.to(filteredAndDoubledNumberTopic);
+
+filteredAndDoubled.map((data) => data.toString()).to(toStringTopic);
+
+doubledNumberTopic.stream().forEach((data) => {
   console.log("outTopic - " + data);
 });
-filteredDoubledNumberTopic.stream().do((data) => {
+
+filteredAndDoubledNumberTopic.stream().forEach((data) => {
   console.log("filteredOutTopic - " + data);
+});
+
+toStringTopic.stream().forEach((data) => {
+  console.log("toStringTopic - " + data);
 });
 
 inputNumberTopic.push(1);
