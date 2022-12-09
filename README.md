@@ -1,6 +1,6 @@
 # linguine 🍝
 
-De-spaghettifies your event logic! Declaratively compose event logic with Topics and Streams.
+De-spaghettify your event logic! Declaratively compose event logic with Topics and Streams.
 
 ## Installation
 
