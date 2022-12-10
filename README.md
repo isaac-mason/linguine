@@ -46,7 +46,7 @@ topic.stream().map((value) => value * 2)
 
 ### `flatMap`
 
-Calls the given function for each value in the stream, and returns multiple messages. The givenfunction must return an array.
+Calls the given function for each value in the stream, and returns multiple messages. The given function must return an array.
 
 ```ts
 const topic = new Topic<number>()
