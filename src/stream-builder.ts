@@ -22,7 +22,7 @@ export type StreamBuilderProps = {
 }
 
 export class StreamBuilder<T> {
-  T!: T
+  _T!: T
 
   private props: NodeProps | undefined
 
@@ -339,7 +339,7 @@ export class StreamBuilder<T> {
       stream.current.children.push(mergeNode)
     })
 
-    return new StreamBuilder<[...S][number]['T'] | this['T']>(
+    return new StreamBuilder<[...S][number]['_T'] | this['_T']>(
       mergeNode,
       this.props
     )

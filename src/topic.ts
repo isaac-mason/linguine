@@ -3,6 +3,8 @@ import { PassthroughNode } from './nodes/passthrough-node'
 import { StreamBuilder } from './stream-builder'
 
 export class Topic<T> {
+  _T!: T
+
   children: Node[] = []
 
   /**

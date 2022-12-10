@@ -10,45 +10,27 @@ $ npm install linguine # or yarn install
 
 ## Introduction
 
-Linguine is a library for declaratively composing event logic. It's like RxJS, but with fewer features, and generally worse! It's also a lot smaller, and has a much simpler API.
+`linguine` is a library for declaratively composing event logic. It's like RxJS, but with fewer features, and generally worse! It's also a lot smaller, and has a simpler API.
 
-## Example
+`linguine` is built around two concepts: **Topics** and **Streams**.
+
+A **Topic** is something you can write values to. A **Stream** takes values from a Topic and manipulates them. The beauty of linguine is Streams can branch and merge, allowing you to compose complex event logic in a declarative way.
+
+## Simple Example
 
 ```ts
-type PlayerInput = {
-  up: boolean
-  down: boolean
-  left: boolean
-  right: boolean
-}
+import { Topic } from 'linguine'
 
-type PlayerMovement = {
-  x: number
-  y: number
-}
+const numberTopic = new Topic<number>()
+const doubledNumberTopic = new Topic<number>()
 
-const playerInputTopic = new Topic<PlayerInput>()
-const playerMovementTopic = new Topic<PlayerMovement>()
-
-playerInputTopic
+numberTopic
   .stream()
-  .map(({ up, down, left, right }) => ({
-    x: (left ? -1 : 0) + (right ? 1 : 0),
-    y: (up ? -1 : 0) + (down ? 1 : 0),
-  }))
-  .to(playerMovementTopic)
-
-playerMovementTopic.stream().forEach((movement) => console.log(movement))
-
-// later...
-
-playerInputTopic.write({ up: true, down: false, left: false, right: false })
-
-// stdout:
-// { x: -1, y: 0 }
+  .map((value) => value * 2)
+  .to(doubledNumberTopic)
 ```
 
-## Stream Nodes
+## Stream APIs
 
 ### `map`
 
@@ -56,10 +38,9 @@ Calls the given function for each value in the stream.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // double each value
-stream.map((value) => value * 2)
+topic.stream().map((value) => value * 2)
 ```
 
 ### `flatMap`
@@ -68,10 +49,9 @@ Calls the given function for each value in the stream, and returns multiple mess
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // return the original value, plus the doubled value
-stream.flatMap((value) => [value, value * 2])
+topic.stream().flatMap((value) => [value, value * 2])
 ```
 
 ### `filter`
@@ -80,22 +60,20 @@ Only pass values through the stream that match a predicate.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // only pass even numbers through the stream
-stream.filter((value) => value % 2 === 0)
+topic.stream().filter((value) => value % 2 === 0)
 ```
 
 ### `forEach`
 
-Call a function on each value in the stream. This is a terminal operation.
+Call a function on each value in the stream.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // log each value
-stream.forEach((value) => console.log(value))
+topic.stream().forEach((value) => console.log(value))
 ```
 
 ### `to`
@@ -106,10 +84,8 @@ Write each value in the stream to a topic. This is a terminal operation.
 const inputTopic = new Topic<number>()
 const outputTopic = new Topic<number>()
 
-const stream = inputTopic.stream()
-
 // write each value to another topic
-stream.to(outputTopic)
+topic.stream().to(outputTopic)
 ```
 
 ### `merge`
@@ -135,10 +111,9 @@ Catches errors in the following streams.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // catch errors in the following streams
-stream.catchError((error) => console.error(error))
+topic.stream().catchError((error) => console.error(error))
 ```
 
 ### `skipDuplicates`
@@ -147,14 +122,18 @@ Skip duplicate values in the stream.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // skip duplicate values and log the results
-stream.skipDuplicates().forEach((value) => console.log(value))
+topic
+  .stream()
+  .skipDuplicates()
+  .forEach((value) => console.log(value))
 
-// `1` will only be logged once
 topic.write(1)
 topic.write(1)
+
+// stdout:
+// `1`
 ```
 
 ### `debounce`
@@ -163,10 +142,12 @@ Debounce the stream. A message will only be passed through the stream if there a
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // debounce by 1000ms
-stream.debounce(1000).forEach((value) => console.log(value))
+topic
+  .stream()
+  .debounce(1000)
+  .forEach((value) => console.log(value))
 
 // only `2` and `3` will be logged
 topic.write(1)
@@ -182,10 +163,12 @@ Delay the stream by a given number of milliseconds.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // delay by 1000ms
-stream.delay(1000).forEach((value) => console.log(value))
+topic
+  .stream()
+  .delay(1000)
+  .forEach((value) => console.log(value))
 
 // `1` will be logged after 1000ms
 topic.write(1)
@@ -197,10 +180,12 @@ Throttle the stream by time. Only one message will be passed through the stream 
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // only pass one message through the stream every 1000ms
-stream.throttleByTime(1000).forEach((value) => console.log(value))
+topic
+  .stream()
+  .throttleByTime(1000)
+  .forEach((value) => console.log(value))
 
 // only `1` and `3` will be logged
 topic.write(1)
@@ -216,10 +201,12 @@ Buffer messages in the stream by time. Messages will be passed through the strea
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // buffer messages by 1000ms
-stream.bufferByTime(1000).forEach((values) => console.log(values))
+topic
+  .stream()
+  .bufferByTime(1000)
+  .forEach((values) => console.log(values))
 
 topic.write(1)
 topic.write(2)
@@ -238,10 +225,12 @@ Buffer messages in the stream by count. Messages will be passed through the stre
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // buffer messages in groups of 2
-stream.bufferByCount(2).forEach((values) => console.log(values))
+topic
+  .stream()
+  .bufferByCount(2)
+  .forEach((values) => console.log(values))
 
 topic.write(1)
 topic.write(2)
@@ -257,10 +246,9 @@ Buffer messages in the stream until a given function returns true.
 
 ```ts
 const topic = new Topic<number>()
-const stream = topic.stream()
 
 // buffer messages until the buffer inclues the number 3
-stream
+topic.stream()
   .bufferUntil((values) => values.includes(3))
   .forEach((values) => console.log(values))
 

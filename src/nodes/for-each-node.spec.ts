@@ -6,11 +6,9 @@ describe('ForEachNode', () => {
     const topic = new Topic<number>()
     const values: number[] = []
 
-    const returnValue = topic.stream().forEach((v) => {
+    topic.stream().forEach((v) => {
       values.push(v)
     })
-
-    expect(returnValue).toBeUndefined()
 
     topic.write(1)
     topic.write(2)

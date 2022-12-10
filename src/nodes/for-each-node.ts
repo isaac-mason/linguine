@@ -8,5 +8,6 @@ export class ForEachNode<T> extends Node {
 
   execute(input: T): void {
     this.fn(input)
+    this.emit(input)
   }
 }
