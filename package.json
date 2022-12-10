@@ -15,7 +15,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "eslint-fix": "eslint --fix ."
+    "eslint-fix": "eslint --fix .",
+    "change": "yarn changeset",
+    "version": "yarn changeset version",
+    "release": "yarn build && yarn test && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.23.0",
