@@ -1,4 +1,4 @@
-import { Node } from './node'
+import { Node, NodeProps } from './node'
 import {
   BufferByCountNode,
   BufferByTimeNode,
@@ -16,12 +16,19 @@ import {
 } from './nodes'
 import type { Topic } from './topic'
 
+export type StreamBuilderProps = {
+  deferred: boolean
+}
+
 export class StreamBuilder<T> {
   T!: T
 
+  private props: NodeProps | undefined
+
   private current: Node | Topic<T>
 
-  constructor(current: Node | Topic<T>) {
+  constructor(current: Node | Topic<T>, props?: NodeProps) {
+    this.props = props
     this.current = current
   }
 
@@ -37,7 +44,7 @@ export class StreamBuilder<T> {
    * ```
    */
   forEach(fn: (value: T) => void) {
-    const node = new ForEachNode(fn)
+    const node = new ForEachNode(fn, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
@@ -55,12 +62,12 @@ export class StreamBuilder<T> {
    * ```
    */
   map<Out>(fn: (value: T) => Out) {
-    const node = new MapNode(fn)
+    const node = new MapNode(fn, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<Out>(node)
+    return new StreamBuilder<Out>(node, this.props)
   }
 
   /**
@@ -75,12 +82,12 @@ export class StreamBuilder<T> {
    * ```
    */
   flatMap<Out>(fn: (value: T) => Out[]) {
-    const node = new FlatMapNode(fn)
+    const node = new FlatMapNode(fn, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<Out>(node)
+    return new StreamBuilder<Out>(node, this.props)
   }
 
   /**
@@ -102,12 +109,12 @@ export class StreamBuilder<T> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter(fn: (value: any) => any) {
-    const node = new FilterNode(fn)
+    const node = new FilterNode(fn, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder(node)
+    return new StreamBuilder(node, this.props)
   }
 
   /**
@@ -124,12 +131,12 @@ export class StreamBuilder<T> {
    * ```
    */
   debounce(ms: number) {
-    const node = new DebounceNode(ms)
+    const node = new DebounceNode(ms, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T>(node)
+    return new StreamBuilder<T>(node, this.props)
   }
 
   /**
@@ -146,12 +153,12 @@ export class StreamBuilder<T> {
    * ```
    */
   delay(ms: number) {
-    const node = new DelayNode(ms)
+    const node = new DelayNode(ms, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T>(node)
+    return new StreamBuilder<T>(node, this.props)
   }
 
   /**
@@ -172,12 +179,12 @@ export class StreamBuilder<T> {
    * ```
    */
   bufferByCount(count: number) {
-    const node = new BufferByCountNode(count)
+    const node = new BufferByCountNode(count, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T[]>(node)
+    return new StreamBuilder<T[]>(node, this.props)
   }
 
   /**
@@ -198,12 +205,12 @@ export class StreamBuilder<T> {
    * ```
    */
   bufferByTime(ms: number) {
-    const node = new BufferByTimeNode<T>(ms)
+    const node = new BufferByTimeNode<T>(ms, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T[]>(node)
+    return new StreamBuilder<T[]>(node, this.props)
   }
 
   /**
@@ -227,12 +234,12 @@ export class StreamBuilder<T> {
    * ```
    */
   throttleByTime(ms: number) {
-    const node = new ThrottleByTimeNode<T>(ms)
+    const node = new ThrottleByTimeNode<T>(ms, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T>(node)
+    return new StreamBuilder<T>(node, this.props)
   }
 
   /**
@@ -252,12 +259,12 @@ export class StreamBuilder<T> {
    * ```
    */
   skipDuplicates() {
-    const node = new SkipDuplicatesNode<T>()
+    const node = new SkipDuplicatesNode<T>(this.props)
 
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T>(node)
+    return new StreamBuilder<T>(node, this.props)
   }
 
   /**
@@ -273,7 +280,7 @@ export class StreamBuilder<T> {
    * ```
    */
   to(topic: Topic<T>): void {
-    const node = new WriteToTopicNode(topic)
+    const node = new WriteToTopicNode(topic, this.props)
 
     node.parent = this.current
     this.current.children.push(node)
@@ -293,14 +300,17 @@ export class StreamBuilder<T> {
    * ```
    */
   join<S extends StreamBuilder<unknown>[]>(...streams: [...S]) {
-    const joinNode = new PassthroughNode()
+    const joinNode = new PassthroughNode(this.props)
 
     this.current.children.push(joinNode)
     streams.forEach((stream) => {
       stream.current.children.push(joinNode)
     })
 
-    return new StreamBuilder<[...S][number]['T'] | this['T']>(joinNode)
+    return new StreamBuilder<[...S][number]['T'] | this['T']>(
+      joinNode,
+      this.props
+    )
   }
 
   /**
@@ -320,6 +330,6 @@ export class StreamBuilder<T> {
     node.parent = this.current
     this.current.children.push(node)
 
-    return new StreamBuilder<T>(node)
+    return new StreamBuilder<T>(node, this.props)
   }
 }

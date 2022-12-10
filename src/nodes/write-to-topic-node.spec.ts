@@ -7,7 +7,9 @@ describe('WriteToTopicNode', () => {
     const outTopic = new Topic<number>()
     let value: number | undefined
 
-    inTopic.stream().to(outTopic)
+    const returnValue = inTopic.stream().to(outTopic)
+
+    expect(returnValue).toBeUndefined()
 
     outTopic.stream().forEach((v) => {
       value = v

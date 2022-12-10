@@ -1,4 +1,4 @@
-import type { Node } from './node'
+import type { Node, NodeProps } from './node'
 import { PassthroughNode } from './nodes/passthrough-node'
 import { StreamBuilder } from './stream-builder'
 
@@ -18,10 +18,10 @@ export class Topic<T> {
   /**
    * Create a new stream builder for this topic
    */
-  stream(): StreamBuilder<T> {
-    const rootNode = new PassthroughNode()
+  stream(props?: NodeProps): StreamBuilder<T> {
+    const rootNode = new PassthroughNode(props)
     this.children.push(rootNode)
 
-    return new StreamBuilder<T>(rootNode)
+    return new StreamBuilder<T>(rootNode, props)
   }
 }
