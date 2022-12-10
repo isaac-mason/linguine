@@ -1,5 +1,12 @@
 {
   "name": "linguine",
+  "description": "De-spaghettify your event logic! Declaratively compose event logic with Topics and Streams",
+  "keywords": [
+    "events",
+    "eventing",
+    "streams",
+    "topics"
+  ],
   "type": "module",
   "packageManager": "yarn@3.2.1",
   "author": "Isaac Mason <isaac@isaacmason.com>",
