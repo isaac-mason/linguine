@@ -5,7 +5,7 @@ De-spaghettify your event logic! Declaratively compose event logic with Topics a
 ## Installation
 
 ```sh
-npm add linguine
+npm install linguine
 yarn add linguine
 ```
 
