@@ -10,9 +10,9 @@ $ npm install linguine # or yarn install
 
 ## Introduction
 
-`linguine` is a library for declaratively composing event logic. It's like RxJS, but with fewer features, and generally worse! It's also a lot smaller, and has a simpler API.
+Linguine is a library for declaratively composing event logic. It's like RxJS, but with fewer features, and generally worse! It's also a lot smaller, and has a simpler API.
 
-`linguine` is built around two concepts: **Topics** and **Streams**.
+Linguine is built around two concepts: **Topics** and **Streams**.
 
 A **Topic** is something you can write values to. A **Stream** takes values from a Topic and manipulates them. The beauty of linguine is Streams can branch and merge, allowing you to compose complex event logic in a declarative way.
 
