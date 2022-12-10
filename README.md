@@ -30,7 +30,7 @@ numberTopic
   .to(doubledNumberTopic)
 ```
 
-## Stream APIs
+## Streams API
 
 ### `map`
 
