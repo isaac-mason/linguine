@@ -103,7 +103,7 @@ const streamB = topicB.stream()
 const mergedStream = streamA.merge(streamB)
 ```
 
-Merging streams is also typesafe! The merged stream will have the union of the types of the two streams.
+Merging streams is also typesafe! The merged stream's type will be the union of the merged streams.
 
 ### `catchError`
 
