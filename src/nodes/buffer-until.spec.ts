@@ -8,7 +8,7 @@ describe('BufferUntilNode', () => {
 
     topic
       .stream()
-      .bufferByCount(2)
+      .bufferUntil((v) => v.includes(3))
       .forEach((v) => {
         values.push(v)
       })
@@ -16,12 +16,7 @@ describe('BufferUntilNode', () => {
     topic.write(1)
     topic.write(2)
     topic.write(3)
-    topic.write(4)
-    topic.write(5)
 
-    expect(values).toEqual([
-      [1, 2],
-      [3, 4],
-    ])
+    expect(values).toEqual([[1, 2, 3]])
   })
 })
