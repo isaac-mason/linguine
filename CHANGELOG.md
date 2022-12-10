@@ -1,5 +1,11 @@
 # linguine
 
+## 0.0.6
+
+### Patch Changes
+
+- b26e400: feat: remove unused StreamBuilderProps type
+
 ## 0.0.5
 
 ### Patch Changes
