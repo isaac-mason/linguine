@@ -2,15 +2,15 @@ import { describe, it, expect } from '@jest/globals'
 import { Topic } from '.'
 
 describe('StreamBuilder', () => {
-  describe('join', () => {
-    it('should join streams', () => {
+  describe('merge', () => {
+    it('should merge streams', () => {
       const topic1 = new Topic<number>()
       const topic2 = new Topic<number>()
       const values: number[] = []
 
       topic1
         .stream()
-        .join(topic2.stream())
+        .merge(topic2.stream())
         .forEach((v) => {
           values.push(v)
         })

@@ -1,19 +1,9 @@
 import type { NodeProps } from '../node'
-import { Node } from '../node'
+import { BufferUntilNode } from './buffer-until-node'
 
-export class BufferByCountNode<T> extends Node {
-  private buffer: T[] = []
-
+export class BufferByCountNode<T> extends BufferUntilNode<T> {
   constructor(public count: number, props?: NodeProps) {
-    super(props)
-  }
-
-  execute(input: T): void {
-    this.buffer.push(input)
-
-    if (this.buffer.length >= this.count) {
-      this.emit(this.buffer)
-      this.buffer = []
-    }
+    const shouldEmit = (buffer: T[]) => buffer.length >= this.count
+    super(shouldEmit, props)
   }
 }

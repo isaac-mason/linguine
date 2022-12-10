@@ -14,6 +14,7 @@ import {
   ThrottleByTimeNode,
   WriteToTopicNode,
 } from './nodes'
+import { BufferUntilNode } from './nodes/buffer-until-node'
 import type { Topic } from './topic'
 
 export type StreamBuilderProps = {
@@ -214,6 +215,37 @@ export class StreamBuilder<T> {
   }
 
   /**
+   * Buffers the stream until the predicate returns true
+   * @param predicate
+   * @returns
+   *
+   * @example
+   * ```ts
+   * const topic = new Topic<number>();
+   *
+   * // Will buffer until the buffer includes the number `3`
+   * topic.stream()
+   *  .bufferUntil((buffer) => buffer.includes(3))
+   *  .forEach((value) => console.log(value));
+   *
+   * topic.write(1);
+   * topic.write(2);
+   * topic.write(3);
+   *
+   * // stdout:
+   * // [1, 2, 3]
+   * ```
+   */
+  bufferUntil(predicate: (value: T[]) => boolean) {
+    const node = new BufferUntilNode(predicate, this.props)
+
+    node.parent = this.current
+    this.current.children.push(node)
+
+    return new StreamBuilder<T[]>(node, this.props)
+  }
+
+  /**
    * Ignores messages if a message has already been emitted in the last ms.
    * @param ms
    * @returns
@@ -287,7 +319,7 @@ export class StreamBuilder<T> {
   }
 
   /**
-   * Joins the given streams
+   * Merges the given streams
    * @param streams
    * @returns
    *
@@ -296,19 +328,19 @@ export class StreamBuilder<T> {
    * const topic = new Topic<number>();
    * const doubledStream = topic.stream().map((value) => value * 2);
    * const tripledStream = topic.stream().map((value) => value * 3);
-   * const joinedStream = doubledStream.join(tripledStream);
+   * const mergedStream = doubledStream.merge(tripledStream);
    * ```
    */
-  join<S extends StreamBuilder<unknown>[]>(...streams: [...S]) {
-    const joinNode = new PassthroughNode(this.props)
+  merge<S extends StreamBuilder<unknown>[]>(...streams: [...S]) {
+    const mergeNode = new PassthroughNode(this.props)
 
-    this.current.children.push(joinNode)
+    this.current.children.push(mergeNode)
     streams.forEach((stream) => {
-      stream.current.children.push(joinNode)
+      stream.current.children.push(mergeNode)
     })
 
     return new StreamBuilder<[...S][number]['T'] | this['T']>(
-      joinNode,
+      mergeNode,
       this.props
     )
   }
