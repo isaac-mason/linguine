@@ -1,5 +1,11 @@
 # linguine
 
+## 0.0.5
+
+### Patch Changes
+
+- bed6c15: Update README.md
+
 ## 0.0.4
 
 ### Patch Changes
