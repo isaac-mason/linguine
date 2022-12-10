@@ -17,10 +17,6 @@ import {
 import { BufferUntilNode } from './nodes/buffer-until-node'
 import type { Topic } from './topic'
 
-export type StreamBuilderProps = {
-  deferred: boolean
-}
-
 export class StreamBuilder<T> {
   _T!: T
 
