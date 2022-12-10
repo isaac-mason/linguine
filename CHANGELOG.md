@@ -1,5 +1,11 @@
 # linguine
 
+## 0.0.3
+
+### Patch Changes
+
+- e7fe0ab: Update README.md
+
 ## 0.0.2
 
 ### Patch Changes
