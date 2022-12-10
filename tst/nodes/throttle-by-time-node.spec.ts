@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { Topic } from '..'
+import { Topic } from '../../src'
 
 describe('ThrottleByTimeNode', () => {
   jest.useFakeTimers()

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals'
-import { Topic } from '.'
+import { Topic } from '../src'
 
 describe('StreamBuilder', () => {
   describe('merge', () => {

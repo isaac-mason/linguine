@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { Topic } from '..'
+import { Topic } from '../../src'
 
 describe('ForEachNode', () => {
   it('should call the callback for each event, and should be a terminal operation', () => {

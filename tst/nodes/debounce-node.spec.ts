@@ -1,16 +1,16 @@
 import { describe, expect, it } from '@jest/globals'
-import { Topic } from '..'
+import { Topic } from '../../src'
 
-describe('BufferByTimeNode', () => {
+describe('DebounceNode', () => {
   jest.useFakeTimers()
 
-  it('should buffer by time', () => {
+  it('should debounce values', () => {
     const topic = new Topic<number>()
-    const values: number[][] = []
+    const values: number[] = []
 
     topic
       .stream()
-      .bufferByTime(1000)
+      .debounce(1000)
       .forEach((v) => {
         values.push(v)
       })
@@ -22,6 +22,6 @@ describe('BufferByTimeNode', () => {
 
     jest.advanceTimersByTime(2000)
 
-    expect(values).toEqual([[1, 2]])
+    expect(values).toEqual([2])
   })
 })

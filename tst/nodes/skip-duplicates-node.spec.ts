@@ -1,23 +1,22 @@
 import { describe, expect, it } from '@jest/globals'
-import { Topic } from '..'
+import { Topic } from '../../src'
 
-describe('FilterNode', () => {
-  it('should filter values', () => {
+describe('SkipDuplicatesNode', () => {
+  it('should skip duplicates', () => {
     const topic = new Topic<number>()
     const values: number[] = []
 
     topic
       .stream()
-      .filter((v) => v % 2 === 0)
+      .skipDuplicates()
       .forEach((v) => {
         values.push(v)
       })
 
     topic.write(1)
+    topic.write(1)
     topic.write(2)
-    topic.write(3)
-    topic.write(4)
 
-    expect(values).toEqual([2, 4])
+    expect(values).toEqual([1, 2])
   })
 })
