@@ -1,5 +1,12 @@
 # linguine
 
+## 0.0.7
+
+### Patch Changes
+
+- 3d80794: Update README.md
+- b55e10c: Add `stream.destroy()` for destroying a stream from the current node
+
 ## 0.0.6
 
 ### Patch Changes
