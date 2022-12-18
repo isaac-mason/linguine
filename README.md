@@ -284,4 +284,3 @@ stream.destroy()
 // should not log anything
 topic.write(1)
 ```
-```
