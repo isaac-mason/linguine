@@ -25,10 +25,11 @@ import { Topic } from 'linguine'
 const numberTopic = new Topic<number>()
 const doubledNumberTopic = new Topic<number>()
 
-numberTopic
-  .stream()
-  .map((value) => value * 2)
-  .to(doubledNumberTopic)
+const numberStream = numberTopic.stream()
+
+numberStream.map((value) => value * 2).to(doubledNumberTopic)
+
+numberStream.destroy()
 ```
 
 ## Streams API
@@ -249,7 +250,8 @@ Buffer messages in the stream until a given function returns true.
 const topic = new Topic<number>()
 
 // buffer messages until the buffer inclues the number 3
-topic.stream()
+topic
+  .stream()
   .bufferUntil((values) => values.includes(3))
   .forEach((values) => console.log(values))
 
@@ -259,4 +261,27 @@ topic.write(3)
 
 // stdout:
 // `[1, 2, 3]`
+```
+
+### `destroy`
+
+Destroys the stream from the current node.
+
+```ts
+const topic = new Topic<number>()
+const stream = topic.stream()
+
+stream
+  .map((value) => value * 2)
+  .forEach((value) => console.log(value))
+
+// should log `2`
+topic.write(1)
+
+// destroy the stream
+stream.destroy()
+
+// should not log anything
+topic.write(1)
+```
 ```

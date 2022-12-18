@@ -22,6 +22,7 @@ export class Topic<T> {
    */
   stream(props?: NodeProps): StreamBuilder<T> {
     const rootNode = new PassthroughNode(props)
+    rootNode.parents.push(this)
     this.children.push(rootNode)
 
     return new StreamBuilder<T>(rootNode, props)

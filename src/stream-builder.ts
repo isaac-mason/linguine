@@ -15,7 +15,7 @@ import {
   WriteToTopicNode,
 } from './nodes'
 import { BufferUntilNode } from './nodes/buffer-until-node'
-import type { Topic } from './topic'
+import { Topic } from './topic'
 
 export class StreamBuilder<T> {
   _T!: T
@@ -42,8 +42,7 @@ export class StreamBuilder<T> {
    */
   forEach(fn: (value: T) => void) {
     const node = new ForEachNode(fn, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
   }
 
@@ -60,8 +59,7 @@ export class StreamBuilder<T> {
    */
   map<Out>(fn: (value: T) => Out) {
     const node = new MapNode(fn, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<Out>(node, this.props)
@@ -80,8 +78,7 @@ export class StreamBuilder<T> {
    */
   flatMap<Out>(fn: (value: T) => Out[]) {
     const node = new FlatMapNode(fn, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<Out>(node, this.props)
@@ -107,8 +104,7 @@ export class StreamBuilder<T> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filter(fn: (value: any) => any) {
     const node = new FilterNode(fn, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder(node, this.props)
@@ -129,8 +125,7 @@ export class StreamBuilder<T> {
    */
   debounce(ms: number) {
     const node = new DebounceNode(ms, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T>(node, this.props)
@@ -151,8 +146,7 @@ export class StreamBuilder<T> {
    */
   delay(ms: number) {
     const node = new DelayNode(ms, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T>(node, this.props)
@@ -177,8 +171,7 @@ export class StreamBuilder<T> {
    */
   bufferByCount(count: number) {
     const node = new BufferByCountNode(count, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T[]>(node, this.props)
@@ -203,8 +196,7 @@ export class StreamBuilder<T> {
    */
   bufferByTime(ms: number) {
     const node = new BufferByTimeNode<T>(ms, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T[]>(node, this.props)
@@ -234,8 +226,7 @@ export class StreamBuilder<T> {
    */
   bufferUntil(predicate: (value: T[]) => boolean) {
     const node = new BufferUntilNode(predicate, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T[]>(node, this.props)
@@ -263,8 +254,7 @@ export class StreamBuilder<T> {
    */
   throttleByTime(ms: number) {
     const node = new ThrottleByTimeNode<T>(ms, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T>(node, this.props)
@@ -288,8 +278,7 @@ export class StreamBuilder<T> {
    */
   skipDuplicates() {
     const node = new SkipDuplicatesNode<T>(this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T>(node, this.props)
@@ -309,8 +298,7 @@ export class StreamBuilder<T> {
    */
   to(topic: Topic<T>): void {
     const node = new WriteToTopicNode(topic, this.props)
-
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
   }
 
@@ -331,8 +319,11 @@ export class StreamBuilder<T> {
     const mergeNode = new PassthroughNode(this.props)
 
     this.current.children.push(mergeNode)
+    mergeNode.parents.push(this.current)
+
     streams.forEach((stream) => {
       stream.current.children.push(mergeNode)
+      mergeNode.parents.push(stream.current)
     })
 
     return new StreamBuilder<[...S][number]['_T'] | this['_T']>(
@@ -355,9 +346,31 @@ export class StreamBuilder<T> {
   catchError(fn: (error: Error) => void) {
     const node = new CatchErrorNode(fn)
 
-    node.parent = this.current
+    node.parents.push(this.current)
     this.current.children.push(node)
 
     return new StreamBuilder<T>(node, this.props)
+  }
+
+  /**
+   * Destroys the stream from the current node
+   */
+  destroy() {
+    // detatch current node from parents
+    if (this.current instanceof Node) {
+      this.current.parents.forEach((parent) => {
+        const index = parent.children.indexOf(this.current as Node)
+        parent.children.splice(index, 1)
+      })
+      this.current.parents = []
+    }
+
+    // recursively destroy children
+    const destroyNode = (node: Node) => {
+      node.children.forEach((child) => destroyNode(child))
+      node.children = []
+      node.parents = []
+    }
+    this.current.children.forEach((child) => destroyNode(child))
   }
 }

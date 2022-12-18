@@ -4,8 +4,10 @@ export type NodeProps = {
   deferred?: boolean
 }
 
+export type NodeParent = Node | Topic<unknown>
+
 export abstract class Node {
-  parent?: Node | Topic<unknown>
+  parents: NodeParent[] = []
 
   children: Node[] = []
 

@@ -45,4 +45,54 @@ describe('StreamBuilder', () => {
       })
     })
   })
+
+  describe('destroy', () => {
+    it('should destroy the stream from the current node', () => {
+      const values: number[] = []
+
+      const topic = new Topic<number>()
+      const stream = topic.stream()
+
+      stream
+        .map((v) => v * 2)
+        .forEach((v) => {
+          values.push(v)
+        })
+
+      topic.write(1)
+
+      stream.destroy()
+
+      topic.write(2)
+
+      expect(values).toEqual([2])
+    })
+
+    it('should not destroy nodes upstream of the current node', () => {
+      const values: (number | string)[] = []
+
+      const numberTopic = new Topic<number>()
+
+      const numberStream = numberTopic.stream()
+
+      const stringStream = numberStream.map((v) => String(v))
+      const doubleStream = numberStream.map((v) => v * 2)
+
+      stringStream.forEach((v) => {
+        values.push(v)
+      })
+
+      doubleStream.forEach((v) => {
+        values.push(v)
+      })
+
+      numberTopic.write(1)
+
+      doubleStream.destroy()
+
+      numberTopic.write(2)
+
+      expect(values).toEqual(['1', 2, '2'])
+    })
+  })
 })
