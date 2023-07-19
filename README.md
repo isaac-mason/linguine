@@ -11,7 +11,7 @@ yarn add linguine
 
 ## Introduction
 
-Linguine is a library for declaratively composing event logic. It's like RxJS, but with fewer features, and generally worse! It's also a lot smaller, and has a simpler API.
+Linguine is a library for declaratively composing event logic.
 
 Linguine is built around two concepts: **Topics** and **Streams**.
 
