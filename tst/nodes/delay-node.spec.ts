@@ -1,8 +1,8 @@
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, vi } from 'vitest'
 import { Topic } from '../../src'
 
 describe('DelayNode', () => {
-  jest.useFakeTimers()
+  vi.useFakeTimers()
 
   it('should delay values', () => {
     const topic = new Topic<number>()
@@ -19,7 +19,7 @@ describe('DelayNode', () => {
 
     expect(values).toEqual([])
 
-    jest.advanceTimersByTime(2000)
+    vi.advanceTimersByTime(2000)
 
     expect(values).toEqual([1])
   })

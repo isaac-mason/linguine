@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import { Topic } from '../src'
 
 describe('StreamBuilder', () => {
@@ -25,7 +25,7 @@ describe('StreamBuilder', () => {
   })
 
   describe('deferred', () => {
-    it('should create deferred stream', (done) => {
+    it('should create deferred stream', (): Promise<void> => {
       const topic = new Topic<number>()
       const values: number[] = []
 
@@ -39,9 +39,11 @@ describe('StreamBuilder', () => {
 
       expect(values).toEqual([])
 
-      setTimeout(() => {
-        expect(values).toEqual([1, 2, 3])
-        done()
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          expect(values).toEqual([1, 2, 3])
+          resolve()
+        })
       })
     })
   })
